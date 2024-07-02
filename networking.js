@@ -1,5 +1,13 @@
 const socket = io("https://buildtosurvive-server.onrender.com"); // https://buildtosurvive-server.onrender.com
 
+const url = new URLSearchParams(window.location.search);
+var gameId = url.get('gameid');
+if(gameId != undefined){
+  console.log("Requesting to join..."); // price_descending
+  socket.emit("join",gameId)
+}
+
+
 var server = {
   data: {
     online:false,
@@ -8,22 +16,28 @@ var server = {
     id: null
   },
   beginHost(id){
-    if(server.data.hosting === false){
-      if(id == undefined){ // retrieve data for hosting/tell server
+    if(server.data.id === null){
+      if(server.data.hosting === false){ // retrieve data for hosting/tell server
         console.log("👋🏼 Requesting to host...");
         socket.emit("host",server);
-      } else { // if theres actual data for hosting
-        server.id = id;
         server.data.hosting = true;
-        console.log("👍🏼 Server accepted, you're live!\n"+window.location.href+"?gameid="+server.id);
+      } else { // if theres actual data for hosting
+        server.data.id = id;
+        console.log("👍🏼 Server accepted, you're live!\n"+window.location.href+"?gameid="+server.data.id);
       }
     } else {
-      console.log("🙌🏼 Already in a server!\n"+window.location.href+"?gameid="+server.id);
+      console.log("🙌🏼 Already in a server!\n"+window.location.href+"?gameid="+server.data.id);
     }
+  },
+  joinHost(){
+    server.data.id = gameId;
+    console.log("Joined "+gameId);
   }
 };
 
 socket.on("hostData",server.beginHost);
+
+socket.on("joinData",server.joinHost);
 
 
 try {
