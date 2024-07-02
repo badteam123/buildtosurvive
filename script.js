@@ -31,10 +31,19 @@ const skybox = skyboxLoader.load([
 
 scene.background = skybox;
 
-var world = new World();
+var world;
+
+var build = new Build();
+
+// if seed in cache then
+// world = new World(seed);
+// else
+world = new World();
 
 const perlin2D = new PerlinNoise2D(world.seed);
 const perlin3D = new PerlinNoise3D(world.seed);
+
+var finishedGenerating = false;
 
 function animate() {
   requestAnimationFrame(animate);
@@ -44,22 +53,9 @@ animate();
 
 const generator = new Worker('generateThread.js');
 var generatorReady = true;
-var ignoreGen1 = false;
 
 const generator2 = new Worker('generateThread.js');
 var generator2Ready = true;
-var ignoreGen2 = false;
-
-const playerHeight = 1.8;
-const playerWidth = playerHeight * 0.3;
-const halfHeight = playerHeight * 0.5;
-const halfWidth = playerWidth * 0.5;
-const stepHeight = 0.6;
-
-const speed = 0.00007;
-const gravity = 0.000024;
-const jumpHeight = 0.008;
-const dampening = 0.012;
 
 var mouse = {
   l: false,
@@ -189,7 +185,13 @@ function draw() {
     player.yVel = lerp(player.yVel, 0, 0.01 * deltaTime);
   }
 
+  player.onGround = false;
+
+  world.collideFloor();
+  build.collideFloor();
+
   world.collide();
+  build.collide();
 
   if (player.xVel != 0) {
     player.x += (player.xVel) * deltaTime;
@@ -248,14 +250,18 @@ function draw() {
     }
   }
 
+  if(generatorReady && generator2Ready && world.update.length === 0){
+    finishedGenerating = true;
+  }
+
   camera.rotateX(-player.t);
   camera.rotateY(-player.r);
 
   let rotateCam = 0;
   let tiltCam = 0;
 
-  rotateCam = (round(-movedX, 4) * 0.003);
-  tiltCam = (round(movedY, 4) * 0.003);
+  rotateCam = (round(-movedX, 4) * 0.003 * options.sensitivity);
+  tiltCam = (round(movedY, 4) * 0.003 * options.sensitivity);
 
   player.r += (rotateCam * deltaTime) / 8;
   player.t -= (tiltCam * deltaTime) / 8;
@@ -296,12 +302,14 @@ function draw() {
 
   camera.updateProjectionMatrix();
 
-  for (let p = 0; p < players.length; p++) {
+  for (let p in players) {
     if(players[p].pos != undefined && players[p].bos != undefined){
       players[p].bos[0] += players[p].vel[0] * deltaTime;
       players[p].bos[1] += players[p].vel[1] * deltaTime;
       players[p].bos[2] += players[p].vel[2] * deltaTime;
-      displayedPlayers[players[p].pid].position.set(players[p].bos[0], players[p].bos[1], players[p].bos[2]);
+      try{
+      displayedPlayers[p].position.set(players[p].bos[0], players[p].bos[1], players[p].bos[2]);
+      }catch(err){}
     }
   }
 
@@ -316,13 +324,15 @@ function updateBlockFacing() {
   let intersects = player.facing.ray.intersectObjects(scene.children, true);
 
   if (intersects.length >= 1) {
-    player.facing.x = Math.floor(intersects[0].point.x - (intersects[0].face.normal.x * 0.5));
-    player.facing.y = Math.floor(intersects[0].point.y - (intersects[0].face.normal.y * 0.5));
-    player.facing.z = Math.floor(intersects[0].point.z - (intersects[0].face.normal.z * 0.5));
-    player.facing.place.x = Math.floor(intersects[0].point.x + (intersects[0].face.normal.x * 0.5));
-    player.facing.place.y = Math.floor(intersects[0].point.y + (intersects[0].face.normal.y * 0.5));
-    player.facing.place.z = Math.floor(intersects[0].point.z + (intersects[0].face.normal.z * 0.5));
-    player.facing.block = true;
+    if(intersects.length >= 1){
+      player.facing.x = Math.round(intersects[0].point.x - (intersects[0].face.normal.x * 0.5));
+      player.facing.y = Math.round(intersects[0].point.y - (intersects[0].face.normal.y * 0.5));
+      player.facing.z = Math.round(intersects[0].point.z - (intersects[0].face.normal.z * 0.5));
+      player.facing.place.x = Math.round(intersects[0].point.x + (intersects[0].face.normal.x * 0.5));
+      player.facing.place.y = Math.round(intersects[0].point.y + (intersects[0].face.normal.y * 0.5));
+      player.facing.place.z = Math.round(intersects[0].point.z + (intersects[0].face.normal.z * 0.5));
+      player.facing.block = true;
+    }
   } else {
     player.facing.block = false;
   }
@@ -331,30 +341,9 @@ function updateBlockFacing() {
 
 function keyPressed() {
   switch (keyCode) {
-    case 69:
-      player.health.current -= random(1, 10);
+    case 72:
+      server.beginHost();
       break;
-  }
-}
-
-function reloadGame(){
-  world.seed = serverData.seed;
-  perlin2D = new PerlinNoise2D(world.seed);
-  perlin3D = new PerlinNoise3D(world.seed);
-  player.x = world.chunkSize / 2;
-  player.y = perlin2D.noise((world.chunkSize / 2) * world.ground.scale + 100, (world.chunkSize / 2) * world.ground.scale + 100) * world.ground.height;
-  player.z = world.chunkSize / 2;
-  player.xVel = 0;
-  player.yVel = 0;
-  player.zVel = 0;
-  world.unloadAll();
-  world.update = [];
-  world.generateNearby();
-  if(!generatorReady){
-    ignoreGen1 = true;
-  }
-  if(!generator2Ready){
-    ignoreGen2 = true;
   }
 }
 
@@ -370,7 +359,8 @@ document.addEventListener("mousedown", function (event) {
   }
   if (event.button === 2) { // Right mouse button
     if (player.facing.block) {
-      world.addBlock(player.facing.place.x, player.facing.place.y, player.facing.place.z, "grass");
+      build.addBlock(player.facing.place.x, player.facing.place.y, player.facing.place.z, "stone");
+      build.compile();
     }
     mouse.r = true;
   }
@@ -392,17 +382,11 @@ document.addEventListener("mouseup", function (event) {
 });
 
 generator.onmessage = function (e) {
-  if(!ignoreGen1){
-    world.processChunk(e.data);
-  }
-  ignoreGen1 = false;
+  world.processChunk(e.data);
   generatorReady = true;
 }
 
 generator2.onmessage = function (e) {
-  if(!ignoreGen2){
-    world.processChunk(e.data);
-  }
-  ignoreGen2 = false;
+  world.processChunk(e.data);
   generator2Ready = true;
 }

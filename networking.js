@@ -1,21 +1,43 @@
-let connected = false;
-var connectionTime = Date.now();
+const socket = io("https://buildtosurvive-server.onrender.com"); // https://buildtosurvive-server.onrender.com
 
-var serverData;
+var server = {
+  data: {
+    online:false,
+    hosting:false,
+    time: Date.now(),
+    id: null
+  },
+  beginHost(id){
+    if(server.data.hosting === false){
+      if(id == undefined){ // retrieve data for hosting/tell server
+        console.log("👋🏼 Requesting to host...");
+        socket.emit("host",server);
+      } else { // if theres actual data for hosting
+        server.id = id;
+        server.data.hosting = true;
+        console.log("👍🏼 Server accepted, you're live!\n"+window.location.href+"?gameid="+server.id);
+      }
+    } else {
+      console.log("🙌🏼 Already in a server!\n"+window.location.href+"?gameid="+server.id);
+    }
+  }
+};
+
+socket.on("hostData",server.beginHost);
+
 
 try {
 
   connected = false;
-  const socket = io("https://buildtosurvive-server.onrender.com");
+  // i changed the url so it doesnt use ur data | oh no 0.000069 cents
 
   socket.on('connected',(data)=>{
     serverData = data;
 
     // run init code when they connect to server
-    reloadGame();
     
-    connected = true;
-    connectionTime = -(connectionTime -= Date.now());
+    server.data.online = true;
+    server.data.time = -(server.data.time - Date.now());
   });
 
   var players = [];
@@ -24,16 +46,17 @@ try {
 
   socket.on('playerData', (data)=>{
     players = data;
-    console.log(players);
-    for(let i = 0; i < players.length; i++){
+    //console.log(players);
+    for(let i in players){
+      //console.log(i);
       if(players[i].pos == undefined) continue;
       players[i].vel = [0, 0, 0];
-      if(displayedPlayers[players[i].pid] != undefined){
+      if(displayedPlayers[i] != undefined){
         players[i].bos = blayers[i].pos;
         players[i].vel[0] = (players[i].pos[0] - players[i].bos[0])/serverData.tickDelay;
         players[i].vel[1] = (players[i].pos[1] - players[i].bos[1])/serverData.tickDelay;
         players[i].vel[2] = (players[i].pos[2] - players[i].bos[2])/serverData.tickDelay;
-        displayedPlayers[players[i].pid].rotation.y = players[i].r;
+        displayedPlayers[i].rotation.y = players[i].r;
       } else {
         addPlayer(i);
       }
@@ -42,9 +65,7 @@ try {
       var data = {
         pos: [round(player.x,2),round(player.y,2),round(player.z,2)],
         r: Math.round(player.r),
-        pid: socket.id
       };
-
       socket.emit('myPlayerData',data);
     } catch(err){
       console.log(err);
@@ -65,11 +86,11 @@ try {
     // If the player object doesn't exist yet, create it and add it to the scene
     let geometry = new THREE.BoxGeometry(.6, 1.8, .6);
     let material = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    displayedPlayers[players[i].pid] = new THREE.Mesh(geometry, material);
+    displayedPlayers[i] = new THREE.Mesh(geometry, material);
     try{
-      displayedPlayers[players[i].pid].position.set(players[i].pos[0], 0, players[i].pos[2]);
+      displayedPlayers[i].position.set(players[i].pos[0], 0, players[i].pos[2]);
     }catch(err){}
-    scene.add(displayedPlayers[players[i].pid]);
+    scene.add(displayedPlayers[i]);
   }
 
   

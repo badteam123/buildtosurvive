@@ -59,7 +59,7 @@ function hud(){
     textAlign(LEFT,TOP)
     textSize(26);
 
-    text(`🪵 ${r.wood}\n🪨 ${r.stone}\nConnected? ${connected} - ${connectionTime}ms\nFPS: ${Math.round(smoothFps * 10) / 10}`,rd.x,rd.y);
+    text(`🪵 ${r.wood}\n🪨 ${r.stone}\nConnected? ${server.data.online} - ${server.data.time}ms\nFPS: ${Math.round(smoothFps * 10) / 10}`,rd.x,rd.y);
 
     //
 

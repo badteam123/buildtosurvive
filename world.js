@@ -2,9 +2,10 @@ class World {
   constructor() {
     this.chunk = {};
     this.chunkModel = {};
-    this.chunkSize = 40;
+    this.chunkSize = 60;
     this.update = [];
-    this.renderDistance = 4;
+    this.compileQueue = [];
+    this.renderDistance = 5;
     this.seed = Math.floor(Math.random() * 65000);
 
     this.ground = {
@@ -92,7 +93,60 @@ class World {
 
     //console.log(chunksToCheck.length)
 
-    player.onGround = false;
+    for (let c = 0; c < chunksToCheck.length; c++) {
+      if (this.chunk[chunksToCheck[c][0]]) {
+        if (Array.isArray(this.chunk[chunksToCheck[c][0]][chunksToCheck[c][1]])) {
+          let lngth = this.chunk[chunksToCheck[c][0]][chunksToCheck[c][1]].length;
+          for (let b = 0; b < lngth; b++) {
+            this.chunk[chunksToCheck[c][0]][chunksToCheck[c][1]][b].collide();
+          }
+        }
+      }
+    }
+
+  }
+
+  collideFloor() {
+
+    //console.log(chunksToCheck.length)
+
+    let chunksToCheck = [];
+
+    for (let x = -1; x <= 1; x += 2) {
+      for (let z = -1; z <= 1; z += 2) {
+        let exists = false;
+        let check = this.gc(player.x + (halfWidth * x), player.z + (halfWidth * z));
+
+        for (let i = 0; i < chunksToCheck.length; i++) {
+          if (check[0] === chunksToCheck[i][0] && check[1] === chunksToCheck[i][1]) {
+            exists = true;
+          }
+        }
+
+        if (!exists) {
+          chunksToCheck.push([check[0], check[1]]);
+        }
+      }
+    }
+
+    for (let x = -1; x <= 1; x += 2) {
+      for (let z = -1; z <= 1; z += 2) {
+        let exists = false;
+        let check = this.gc(player.x + (halfWidth * x) + (player.xVel * deltaTime), player.z + (halfWidth * z) + (player.zVel * deltaTime));
+
+        for (let i = 0; i < chunksToCheck.length; i++) {
+          if (check[0] === chunksToCheck[i][0] && check[1] === chunksToCheck[i][1]) {
+            exists = true;
+          }
+        }
+
+        if (!exists) {
+          chunksToCheck.push([check[0], check[1]]);
+        }
+      }
+    }
+
+    //console.log(chunksToCheck.length)
 
     for (let c = 0; c < chunksToCheck.length; c++) {
       if (this.chunk[chunksToCheck[c][0]]) {
@@ -100,17 +154,6 @@ class World {
           let lngth = this.chunk[chunksToCheck[c][0]][chunksToCheck[c][1]].length;
           for (let b = 0; b < lngth; b++) {
             this.chunk[chunksToCheck[c][0]][chunksToCheck[c][1]][b].collideFloor();
-          }
-        }
-      }
-    }
-
-    for (let c = 0; c < chunksToCheck.length; c++) {
-      if (this.chunk[chunksToCheck[c][0]]) {
-        if (Array.isArray(this.chunk[chunksToCheck[c][0]][chunksToCheck[c][1]])) {
-          let lngth = this.chunk[chunksToCheck[c][0]][chunksToCheck[c][1]].length;
-          for (let b = 0; b < lngth; b++) {
-            this.chunk[chunksToCheck[c][0]][chunksToCheck[c][1]][b].collide();
           }
         }
       }
@@ -154,6 +197,27 @@ class World {
       this.chunkModel[ch[0]][ch[1]] = {};
     }
     this.chunk[ch[0]][ch[1]].push(new Block(x, y, z, tex));
+  }
+
+  addBlockNew(x, y, z, tex) {
+    let ch = this.gc(x, z);
+
+    if (!this.chunk[ch[0]]) {
+      this.chunk[ch[0]] = {};
+    }
+    if (!Array.isArray(this.chunk[ch[0]][ch[1]])) {
+      this.chunk[ch[0]][ch[1]] = [];
+    }
+    if (!this.chunkModel[ch[0]]) {
+      this.chunkModel[ch[0]] = {};
+    }
+    if (!this.chunkModel[ch[0]][ch[1]]) {
+      this.chunkModel[ch[0]][ch[1]] = {};
+    }
+
+    if(!this.checkForBlock(this.chunk[ch[0]][ch[1]], x, y, z)){
+      this.chunk[ch[0]][ch[1]].push(new Block(x, y, z, tex));
+    }
   }
 
   removeBlock(x, y, z) {
