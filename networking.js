@@ -1,4 +1,4 @@
-const socket = io("https://buildtosurvive-server.onrender.com"); // https://buildtosurvive-server.onrender.com
+const socket = io("https://84461452-e99f-471d-85af-cf8da788e100-00-2v1cea0xylvt5.worf.replit.dev/"); // https://buildtosurvive-server.onrender.com
 
 const url = new URLSearchParams(window.location.search);
 var gameId = url.get('gameid');
@@ -15,29 +15,35 @@ var server = {
     time: Date.now(),
     id: null
   },
-  beginHost(id){
+  beginHost(){
     if(server.data.id === null){
-      if(server.data.hosting === false){ // retrieve data for hosting/tell server
-        console.log("👋🏼 Requesting to host...");
-        socket.emit("host",server);
-        server.data.hosting = true;
-      } else { // if theres actual data for hosting
-        server.data.id = id;
-        console.log("👍🏼 Server accepted, you're live!\n"+window.location.href+"?gameid="+server.data.id);
-      }
+      console.log("👋🏼 Requesting to host...");
+      socket.emit("host",server);
+      server.data.hosting = true;
     } else {
       console.log("🙌🏼 Already in a server!\n"+window.location.href+"?gameid="+server.data.id);
     }
   },
-  joinHost(){
-    server.data.id = gameId;
-    console.log("Joined "+gameId);
+  joinHost(serverData){
+    if(server.data.hosting === false){
+      server.data.id = serverData.id;
+    } else {
+      server.data.id = socket.id;
+    }
+    console.log("Joined "+server.data.id);
   }
 };
 
-socket.on("hostData",server.beginHost);
-
 socket.on("joinData",server.joinHost);
+
+socket.on("reqServerData", (requester) => {
+  console.log("Someone wants your data lol");
+  serverData = {
+    id: socket.id,
+    seed: world.seed
+  };
+  socket.emit("sendServerData",requester,serverData);
+});
 
 
 try {
@@ -46,7 +52,7 @@ try {
   // i changed the url so it doesnt use ur data | oh no 0.000069 cents
 
   socket.on('connected',(data)=>{
-    serverData = data;
+    masterServerData = data;
 
     // run init code when they connect to server
     
@@ -67,9 +73,9 @@ try {
       players[i].vel = [0, 0, 0];
       if(displayedPlayers[i] != undefined){
         players[i].bos = blayers[i].pos;
-        players[i].vel[0] = (players[i].pos[0] - players[i].bos[0])/serverData.tickDelay;
-        players[i].vel[1] = (players[i].pos[1] - players[i].bos[1])/serverData.tickDelay;
-        players[i].vel[2] = (players[i].pos[2] - players[i].bos[2])/serverData.tickDelay;
+        players[i].vel[0] = (players[i].pos[0] - players[i].bos[0])/masterServerData.tickDelay;
+        players[i].vel[1] = (players[i].pos[1] - players[i].bos[1])/masterServerData.tickDelay;
+        players[i].vel[2] = (players[i].pos[2] - players[i].bos[2])/masterServerData.tickDelay;
         displayedPlayers[i].rotation.y = players[i].r;
       } else {
         addPlayer(i);
