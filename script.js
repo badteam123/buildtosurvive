@@ -23,6 +23,10 @@ scene.add(ambientLight);
 const skyboxLoader = new THREE.CubeTextureLoader();
 skyboxLoader.setPath('https://cdn.jsdelivr.net/gh/badteam123/assets@567fe90f85f0ec5a7873dfe5b346438b7cc90afb/skybox/');
 
+var placementPreview = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x222222, transparent: true, opacity: 0.8 }));
+scene.add(placementPreview);
+
+
 const skybox = skyboxLoader.load([
   'Front-min.png', 'Back-min.png',
   'Top-min.png', 'Bottom-min.png',
@@ -99,10 +103,21 @@ var player = {
   },
 
   resources: {
-    wood: 100,
-    stone: 100,
-    gold: 100
-  }
+    wood: {
+      a: 500,
+      i: "🪵",
+    },
+    stone: {
+      a: 100,
+      i: "🪨",
+    },
+    gold: {
+      a: 100,
+      i: "🪙",
+    }
+  },
+
+  placedCore: false
 };
 
 var smoothFps = 0;
@@ -327,6 +342,35 @@ function updateBlockFacing() {
   let intersects = player.facing.ray.intersectObjects(scene.children, true);
 
   if (intersects.length >= 1) {
+      for (let i = 0; i < intersects.length; i++) {
+        if (intersects[i].object === placementPreview) {
+          intersects.shift();
+        }
+        var intersectionPoint = intersects[i].point;
+        if (intersects[i].object == placementPreview) {
+          placementPreview.position.x = Math.round(intersectionPoint.x);
+          placementPreview.position.y = Math.round(intersectionPoint.y);
+          placementPreview.position.z = Math.round(intersectionPoint.z);
+          return;
+        }
+
+        const backwardOffset = 0.8; // distance to move back
+        const newPosition = {
+          x: Math.round(intersectionPoint.x + intersects[i].face.normal.x * backwardOffset),
+          y: Math.round(intersectionPoint.y + intersects[i].face.normal.y * backwardOffset),
+          z: Math.round(intersectionPoint.z + intersects[i].face.normal.z * backwardOffset)
+        };
+
+        placementPreview.position.x = Math.round(newPosition.x);
+        placementPreview.position.y = Math.round(newPosition.y);
+        placementPreview.position.z = Math.round(newPosition.z);
+        placementPreview.material.opacity = (((sin(a) + 1) * .5) * 0.5) + 0.3;
+        placementPreview.renderOrder = 9999999;
+      };
+
+
+
+
     if (intersects[0].distance <= 5) {
       player.facing.x = Math.round(intersects[0].point.x - (intersects[0].face.normal.x * 0.5));
       player.facing.y = Math.round(intersects[0].point.y - (intersects[0].face.normal.y * 0.5));
@@ -365,7 +409,7 @@ function placeChecks() {
   let insideBlockNext = true;
   let canAfford = false;
 
-  if (player.resources.wood >= buildMenu.items[buildMenu.selection].cost.wood && player.resources.gold >= buildMenu.items[buildMenu.selection].cost.gold && player.resources.stone >= buildMenu.items[buildMenu.selection].cost.stone) {
+  if (player.resources.wood.a >= buildMenu.items[buildMenu.selection].cost.wood && player.resources.gold.a >= buildMenu.items[buildMenu.selection].cost.gold && player.resources.stone.a >= buildMenu.items[buildMenu.selection].cost.stone) {
     canAfford = true;
   }
 
@@ -414,12 +458,12 @@ document.addEventListener("mousedown", function (event) {
     mouse.l = true;
   }
   if (event.button === 2) { // Right mouse button
-    if (player.facing.block) {
+    if (player.facing.block && buildMenu.open) {
       if (placeChecks()) {
         build.addBlock(player.facing.place.x, player.facing.place.y, player.facing.place.z, buildMenu.selectionName);
-        player.resources.gold -= buildMenu.items[buildMenu.selection].cost.gold;
-        player.resources.wood -= buildMenu.items[buildMenu.selection].cost.wood;
-        player.resources.stone -= buildMenu.items[buildMenu.selection].cost.stone;
+        player.resources.gold.a -= buildMenu.items[buildMenu.selection].cost.gold;
+        player.resources.wood.a -= buildMenu.items[buildMenu.selection].cost.wood;
+        player.resources.stone.a -= buildMenu.items[buildMenu.selection].cost.stone;
       }
       build.compile();
     }

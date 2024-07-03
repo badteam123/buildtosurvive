@@ -1,8 +1,9 @@
 let hudsprites = {};
 
 var clr;
+var a = 0;
 
-const buildMenu = {
+var buildMenu = {
     open: false,
     tab: 0,
     selection: 0,
@@ -10,10 +11,19 @@ const buildMenu = {
     dampen: 1,
     lerp: 0,
     items: [
-        { name: "core", cost: { gold: 100, wood: 100, stone: 100 }, tex: { x: 16 + (48 * 3), y: 16 + (48 * 0) } },
-        { name: "wall", cost: { gold: 0, wood: 5, stone: 0 }, tex: { x: 16 + (48 * 4), y: 16 + (48 * 0) } }
+        { name: "core", cost: { wood: 100, stone: 100, gold: 100 }, tex: { x: 16 + (48 * 3), y: 16 + (48 * 0) } }
     ]
 };
+
+const unlocks = [
+    [
+        { name: "wall", cost: { wood: 5, stone: 0, gold: 0 }, tex: { x: 16 + (48 * 4), y: 16 + (48 * 0) } },
+    ],
+    [
+
+    ]
+] // theres a reason for this that i need to talk to you about just add every build here for now pls
+
 
 function defineImages() {
     hudsprites.heart = hudsprites.image.get(1, 1, 256, 256);
@@ -21,15 +31,12 @@ function defineImages() {
 
 let hudElements = {
     healthbar: {
-        x: 50,
+        x: 500,
         y: 50,
-        size: { x: 200, y: 20 }
-    },
-    resources: {
-        x: 30,
-        y: 100
+        size: { x: 500, y: 10 }
     }
 }
+
 
 function hud() {
 
@@ -58,29 +65,24 @@ function hud() {
     if (round(player.health.shown, 2) != round(player.health.current, 2)) fill(155, 0, 0);
     rect(hb.x, hb.y, (player.health.shown / player.health.max) * hb.size.x, hb.size.y);
 
-    if (player.health.current < player.health.max / 3) {
-        text("❤️", hb.x + hb.size.x + 19 + Math.random() * 2, hb.y + 9 + Math.random() * 2)
-    } else {
-        text("❤️", hb.x + hb.size.x + 20, hb.y + 10)
-    }
-
     //
 
     let r = player.resources;
-    let rd = hudElements.resources;
 
     fill(255);
     noStroke();
-    textAlign(LEFT, TOP)
+    textAlign(LEFT, CENTER)
     textSize(26);
 
-    text(`Connected? ${server.data.online} - ${server.data.time}ms\nFPS: ${Math.round(smoothFps * 10) / 10}`, rd.x, rd.y);
+    text(`Connected? ${server.data.online} - ${server.data.time}ms\nFPS: ${Math.round(smoothFps * 10) / 10}`, 100, 100);
 
     //
 
-    fill(0);
-    circle(window.innerWidth / 2, window.innerHeight / 2, 2);
+    hb = hudElements.healthbar;
+    hb.x = window.innerWidth/2 - hb.size.x/2;
+    hb.y = window.innerHeight-120;
 
+    textSize(26);
     clr = color(50, 50, 50, 200);
     fill(clr);
     rect((window.innerWidth/2)-300, window.innerHeight-100, 600, 100);
@@ -88,9 +90,9 @@ function hud() {
     rect((window.innerWidth/2)-290, window.innerHeight-90, 80, 80);
     rect((window.innerWidth/2)-200, window.innerHeight-90, 80, 80);
     fill(255);
-    text(`🪵 ${r.wood}\n🪨 ${r.stone}\n🪙 ${r.gold}`, (window.innerWidth/2)+100, window.innerHeight-95, 600, 100)
+    //cant easily add resources... not like we're gonna have a lot but we should consider making it easier by doing text with a for(in) statement
+    text(`${r.wood.i} ${r.wood.a}\n${r.stone.i} ${r.stone.a}\n${r.gold.i} ${r.gold.a}`, (window.innerWidth/2)+100, window.innerHeight-95, 600, 100)
 
-    textAlign(LEFT, CENTER);
     textSize(16);
 
     if (buildMenu.open) {
@@ -123,6 +125,51 @@ function hud() {
             i++;
         }
         translate(buildMenu.dampen * 320, -((height / 2) - 300));
+    }
+
+    if(player.placedCore === false){
+        let offset = Math.sin(a) * 100;
+        let length = 230 - Math.abs(Math.sin(a) * 150);
+
+        fill(clr);
+        rect(window.innerWidth / 2-165,75,330,50);
+
+        fill(255,255,255)
+        textAlign(CENTER,CENTER);
+        textSize(23);
+
+        if(!buildMenu.open){
+            text(`Press Q to begin building`, window.innerWidth/2, 100);
+        } else {
+            text(`Right click to place your core`, window.innerWidth/2, 100); 
+        }
+        stroke((255-Math.cos(a))*255,0,Math.sin(a)*255); // Set the line color
+        strokeWeight(2);
+        line(window.innerWidth / 2 - length / 2 + offset, 115, window.innerWidth / 2 + length / 2 + offset, 115);
+    }
+
+    // i cried making this
+    a += .005 * deltaTime / 5;
+
+    noStroke();
+    textAlign(LEFT, TOP)
+
+    //Crosshair
+    fill(0);
+    circle(window.innerWidth / 2, window.innerHeight / 2, 2);
+
+    if(buildMenu.open){
+    //Cost of placement
+        let y = 0;
+        for(c in buildMenu.items[buildMenu.selection].cost){
+            let currentItemCost = buildMenu.items[buildMenu.selection].cost[c];
+            if(currentItemCost > 0){
+                fill(255);
+                textSize(20);
+                text(player.resources[c].i+": "+currentItemCost,window.innerWidth / 2+10, window.innerHeight / 2 + y)
+                y+=20;
+            }
+        }
     }
 
 }
