@@ -5,7 +5,7 @@ class World {
     this.chunkSize = 60;
     this.update = [];
     this.compileQueue = [];
-    this.renderDistance = 5;
+    this.renderDistance = 3;
     this.seed = Math.floor(Math.random() * 65000);
 
     this.ground = {

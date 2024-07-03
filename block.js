@@ -23,6 +23,14 @@ class Block {
         this.lx = 0.2;
         this.ly = 0.9;
         break;
+      case "core":
+        this.lx = 0.3;
+        this.ly = 0.9;
+        break;
+      case "wall":
+        this.lx = 0.4;
+        this.ly = 0.9;
+        break;
     }
 
     this.hx = this.lx + 0.1 - 0.033333333;

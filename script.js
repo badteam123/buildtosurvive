@@ -100,14 +100,17 @@ var player = {
 
   resources: {
     wood: 100,
-    stone: 100
+    stone: 100,
+    gold: 100
   }
 };
 
 var smoothFps = 0;
+var blockTexp5;
 
 function preload() {
   hudsprites.image = loadImage('https://cdn.jsdelivr.net/gh/badteam123/assets@ef9adc24840dd4b3299a203a73c71ff8fc649d6d/pixelart/hudspritesheet.png');
+  blockTexp5 = loadImage(`https://cdn.jsdelivr.net/gh/badteam123/assets@af86e142be1ffb3b055c1954bb14c1970705978b/texsheet.png`);
 }
 
 var blockTex;
@@ -123,7 +126,7 @@ function setup() {
   noSmooth();
   frameRate(999999);
 
-  blockTex = new THREE.TextureLoader().load(`https://cdn.jsdelivr.net/gh/badteam123/assets@3954b72ff0df391a017a3fd0e952babc5013de4d/texsheet.png`);
+  blockTex = new THREE.TextureLoader().load(`https://cdn.jsdelivr.net/gh/badteam123/assets@af86e142be1ffb3b055c1954bb14c1970705978b/texsheet.png`);
   blockTex.magFilter = THREE.NearestFilter;
   blockTex.minFilter = THREE.NearestFilter;
   blockTex.wrapS = THREE.RepeatWrapping;
@@ -250,7 +253,7 @@ function draw() {
     }
   }
 
-  if(generatorReady && generator2Ready && world.update.length === 0){
+  if (generatorReady && generator2Ready && world.update.length === 0) {
     finishedGenerating = true;
   }
 
@@ -303,13 +306,13 @@ function draw() {
   camera.updateProjectionMatrix();
 
   for (let p in players) {
-    if(players[p].pos != undefined && players[p].bos != undefined){
+    if (players[p].pos != undefined && players[p].bos != undefined) {
       players[p].bos[0] += players[p].vel[0] * deltaTime;
       players[p].bos[1] += players[p].vel[1] * deltaTime;
       players[p].bos[2] += players[p].vel[2] * deltaTime;
-      try{
-      displayedPlayers[p].position.set(players[p].bos[0], players[p].bos[1], players[p].bos[2]);
-      }catch(err){}
+      try {
+        displayedPlayers[p].position.set(players[p].bos[0], players[p].bos[1], players[p].bos[2]);
+      } catch (err) { }
     }
   }
 
@@ -324,7 +327,7 @@ function updateBlockFacing() {
   let intersects = player.facing.ray.intersectObjects(scene.children, true);
 
   if (intersects.length >= 1) {
-    if(intersects.length >= 1){
+    if (intersects[0].distance <= 5) {
       player.facing.x = Math.round(intersects[0].point.x - (intersects[0].face.normal.x * 0.5));
       player.facing.y = Math.round(intersects[0].point.y - (intersects[0].face.normal.y * 0.5));
       player.facing.z = Math.round(intersects[0].point.z - (intersects[0].face.normal.z * 0.5));
@@ -332,6 +335,8 @@ function updateBlockFacing() {
       player.facing.place.y = Math.round(intersects[0].point.y + (intersects[0].face.normal.y * 0.5));
       player.facing.place.z = Math.round(intersects[0].point.z + (intersects[0].face.normal.z * 0.5));
       player.facing.block = true;
+    } else {
+      player.facing.block = false;
     }
   } else {
     player.facing.block = false;
@@ -344,12 +349,63 @@ function keyPressed() {
     case 72:
       server.beginHost();
       break;
+    case 81://q - Texture Menu
+      buildMenu.open = !buildMenu.open;
+      break;
   }
 }
 
 function windowResized() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   resizeCanvas(window.innerWidth, window.innerHeight);
+}
+
+function placeChecks() {
+  let insideBlock = true;
+  let insideBlockNext = true;
+  let canAfford = false;
+
+  if (player.resources.wood >= buildMenu.items[buildMenu.selection].cost.wood && player.resources.gold >= buildMenu.items[buildMenu.selection].cost.gold && player.resources.stone >= buildMenu.items[buildMenu.selection].cost.stone) {
+    canAfford = true;
+  }
+
+
+  if (player.x <= player.facing.place.x - 0.5 - halfWidth || player.x >= player.facing.place.x + 0.5 + halfWidth) {
+    insideBlock = false;
+  }
+
+  if (player.y <= player.facing.place.y - 0.5 - halfHeight || player.y >= player.facing.place.y + 0.5 + halfHeight) {
+    insideBlock = false;
+  }
+
+  if (player.z <= player.facing.place.z - 0.5 - halfWidth || player.z >= player.facing.place.z + 0.5 + halfWidth) {
+    insideBlock = false;
+  }
+
+  if (player.x + (player.xVel*deltaTime) <= player.facing.place.x - 0.5 - halfWidth || player.x + (player.xVel*deltaTime) >= player.facing.place.x + 0.5 + halfWidth) {
+    insideBlockNext = false;
+  }
+
+  if (player.y + (player.yVel*deltaTime) <= player.facing.place.y - 0.5 - halfHeight || player.y + (player.yVel*deltaTime) >= player.facing.place.y + 0.5 + halfHeight) {
+    insideBlockNext = false;
+  }
+
+  if (player.z + (player.zVel*deltaTime) <= player.facing.place.z - 0.5 - halfWidth || player.z + (player.zVel*deltaTime) >= player.facing.place.z + 0.5 + halfWidth) {
+    insideBlockNext = false;
+  }
+
+  if (canAfford && !insideBlock && !insideBlockNext) {
+    return true;
+  }
+  return false;
+}
+
+function mouseWheel(event) {
+  if (buildMenu.open) {
+    buildMenu.selection += Math.sign(event.delta);
+    buildMenu.selection = Math.min(Math.max(buildMenu.selection, 0), buildMenu.items.length - 1);
+    buildMenu.selectionName = buildMenu.items[buildMenu.selection].name;
+  }
 }
 
 document.addEventListener("mousedown", function (event) {
@@ -359,7 +415,12 @@ document.addEventListener("mousedown", function (event) {
   }
   if (event.button === 2) { // Right mouse button
     if (player.facing.block) {
-      build.addBlock(player.facing.place.x, player.facing.place.y, player.facing.place.z, "stone");
+      if (placeChecks()) {
+        build.addBlock(player.facing.place.x, player.facing.place.y, player.facing.place.z, buildMenu.selectionName);
+        player.resources.gold -= buildMenu.items[buildMenu.selection].cost.gold;
+        player.resources.wood -= buildMenu.items[buildMenu.selection].cost.wood;
+        player.resources.stone -= buildMenu.items[buildMenu.selection].cost.stone;
+      }
       build.compile();
     }
     mouse.r = true;
