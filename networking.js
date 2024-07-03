@@ -1,49 +1,11 @@
-const socket = io("https://84461452-e99f-471d-85af-cf8da788e100-00-2v1cea0xylvt5.worf.replit.dev/"); // https://buildtosurvive-server.onrender.com
-
-const url = new URLSearchParams(window.location.search);
-var gameId = url.get('gameid');
-if(gameId != undefined){
-  console.log("Requesting to join..."); // price_descending
-  socket.emit("join",gameId)
-}
-
+const socket = io("https://buildtosurvive-server.onrender.com"); // https://buildtosurvive-server.onrender.com
 
 var server = {
   data: {
     online:false,
-    hosting:false,
     time: Date.now(),
-    id: null
-  },
-  beginHost(){
-    if(server.data.id === null){
-      console.log("👋🏼 Requesting to host...");
-      socket.emit("host",server);
-      server.data.hosting = true;
-    } else {
-      console.log("🙌🏼 Already in a server!\n"+window.location.href+"?gameid="+server.data.id);
-    }
-  },
-  joinHost(serverData){
-    if(server.data.hosting === false){
-      server.data.id = serverData.id;
-    } else {
-      server.data.id = socket.id;
-    }
-    console.log("Joined "+server.data.id);
   }
 };
-
-socket.on("joinData",server.joinHost);
-
-socket.on("reqServerData", (requester) => {
-  console.log("Someone wants your data lol");
-  serverData = {
-    id: socket.id,
-    seed: world.seed
-  };
-  socket.emit("sendServerData",requester,serverData);
-});
 
 
 try {
