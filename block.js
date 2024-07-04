@@ -27,7 +27,10 @@ class Block {
         this.lx = 0.3;
         this.ly = 0.9;
         player.placedCore = true; //idk if this is a good spot
+        buildMenu.items.shift();
         buildMenu.items = buildMenu.items.concat(unlocks[0]);
+        buildMenu.selectionName = buildMenu.items[buildMenu.selection].name;
+        buildMenu.selection = 0;
         break;
       case "wall":
         this.lx = 0.4;

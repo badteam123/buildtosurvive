@@ -1,5 +1,5 @@
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.01, 2000);
+const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.01, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: false });
 renderer.shadowMap.enabled = false;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -23,7 +23,7 @@ scene.add(ambientLight);
 const skyboxLoader = new THREE.CubeTextureLoader();
 skyboxLoader.setPath('https://cdn.jsdelivr.net/gh/badteam123/assets@567fe90f85f0ec5a7873dfe5b346438b7cc90afb/skybox/');
 
-var placementPreview = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x222222, transparent: true, opacity: 0.8 }));
+var placementPreview = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x222222, transparent: true, opacity: 0.8, visible: false}));
 scene.add(placementPreview);
 
 
@@ -341,36 +341,38 @@ function updateBlockFacing() {
   player.facing.ray.setFromCamera(new THREE.Vector2(0, 0), camera);
   let intersects = player.facing.ray.intersectObjects(scene.children, true);
 
-  if (intersects.length >= 1) {
-      for (let i = 0; i < intersects.length; i++) {
+    try{
+
+      for(let i = 0; i < intersects.length; i++){
         if (intersects[i].object === placementPreview) {
           intersects.shift();
         }
-        var intersectionPoint = intersects[i].point;
-        if (intersects[i].object == placementPreview) {
-          placementPreview.position.x = Math.round(intersectionPoint.x);
-          placementPreview.position.y = Math.round(intersectionPoint.y);
-          placementPreview.position.z = Math.round(intersectionPoint.z);
-          return;
-        }
+      }
+      
+      var intersectionPoint = intersects[0].point;
 
-        const backwardOffset = 0.8; // distance to move back
-        const newPosition = {
-          x: Math.round(intersectionPoint.x + intersects[i].face.normal.x * backwardOffset),
-          y: Math.round(intersectionPoint.y + intersects[i].face.normal.y * backwardOffset),
-          z: Math.round(intersectionPoint.z + intersects[i].face.normal.z * backwardOffset)
-        };
-
-        placementPreview.position.x = Math.round(newPosition.x);
-        placementPreview.position.y = Math.round(newPosition.y);
-        placementPreview.position.z = Math.round(newPosition.z);
-        placementPreview.material.opacity = (((sin(a) + 1) * .5) * 0.5) + 0.3;
-        placementPreview.renderOrder = 9999999;
+      const newPosition = {
+        x: Math.round(intersectionPoint.x + intersects[0].face.normal.x * .5),
+        y: Math.round(intersectionPoint.y + intersects[0].face.normal.y * .5),
+        z: Math.round(intersectionPoint.z + intersects[0].face.normal.z * .5)
       };
 
+      placementPreview.position.x = Math.round(newPosition.x);
+      placementPreview.position.y = Math.round(newPosition.y);
+      placementPreview.position.z = Math.round(newPosition.z);
+      placementPreview.material.opacity = (((sin(a) + 1) * .5) * 0.5) + 0.3;
+      placementPreview.renderOrder = 9999999;
+
+      if(buildMenu.open && intersects[0].distance <= 5){
+        placementPreview.material.visible = true; 
+      } else {
+        placementPreview.material.visible = false;
+      }
+    } catch (err){}
 
 
 
+  if (intersects.length >= 1) {
     if (intersects[0].distance <= 5) {
       player.facing.x = Math.round(intersects[0].point.x - (intersects[0].face.normal.x * 0.5));
       player.facing.y = Math.round(intersects[0].point.y - (intersects[0].face.normal.y * 0.5));

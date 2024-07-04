@@ -2,10 +2,10 @@ class World {
   constructor() {
     this.chunk = {};
     this.chunkModel = {};
-    this.chunkSize = 60;
+    this.chunkSize = 40;
     this.update = [];
     this.compileQueue = [];
-    this.renderDistance = 3;
+    this.renderDistance = 6;
     this.seed = Math.floor(Math.random() * 65000);
 
     this.ground = {
