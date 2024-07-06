@@ -20,20 +20,8 @@ sunLight.target.position.set(0, 0, 0);
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
 
-const skyboxLoader = new THREE.CubeTextureLoader();
-skyboxLoader.setPath('https://cdn.jsdelivr.net/gh/badteam123/assets@567fe90f85f0ec5a7873dfe5b346438b7cc90afb/skybox/');
-
 var placementPreview = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0x222222, transparent: true, opacity: 0.8, visible: false}));
 scene.add(placementPreview);
-
-
-const skybox = skyboxLoader.load([
-  'Front-min.png', 'Back-min.png',
-  'Top-min.png', 'Bottom-min.png',
-  'Left-min.png', 'Right-min.png'
-]);
-
-scene.background = skybox;
 
 var world;
 
